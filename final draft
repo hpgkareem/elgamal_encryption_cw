@@ -1,0 +1,86 @@
+import random
+def check_prime_number(number):
+
+    if number <= 1:
+        return False
+    for i in range(2, int(number ** 0.5) + 1):  
+        if number % i == 0:
+            return False
+    return True
+
+def prime_number_generator(bits):
+    p = random.getrandbits(bits) | 1  
+    return p
+
+def large_prime_generator(bits):
+    p = prime_number_generator(bits)
+    while not check_prime_number(p):
+        p = prime_number_generator(bits)
+    return p
+
+def primitive_root_generator(p):
+    factors = set()
+    a = p - 1
+    for i in range(2, int(p**0.5) + 1):
+        if a % i == 0:
+            factors.add(i)
+            factors.add(a // i)
+    for g in range(2, p):
+        if all(pow(g, factor, p) != 1 for factor in factors):
+            return g
+    return None
+
+def key_generation():
+
+    P = large_prime_generator(8) 
+    G = primitive_root_generator(P) 
+    if not check_prime_number(P):
+        raise ValueError("P must be a prime number.")
+    if G <= 1 or G >= P:
+        raise ValueError("G must be between 2 and P-1.")
+
+    X = random.randint(1, P-2)
+    H = (G^X) % P
+
+    public_key = (P, G, H)
+    private_key = X
+    return public_key, private_key
+
+
+
+def encrypt_the_message(public_key, message):
+
+    P, G, H = public_key  
+    K = random.randint(1, P - 2)  
+    cipher1 = (G^K) % P  
+    m = message
+    cipher2 = (m * ((H^K) % P)) % P 
+    ciphertext = (cipher1, cipher2)
+    return ciphertext
+ 
+
+
+def decrypt_the_message(ciphertext, private_key, public_key):
+
+    cipher1, cipher2 = ciphertext  
+    x = private_key  
+    P, G, H = public_key  
+    secret = (cipher1^x) % P
+    secret_reversed = (secret^-1) % P  
+    m = (cipher2 * secret_reversed) % P  
+    return m
+
+
+public_key, private_key = key_generation()
+print(f"Public Key: {public_key} & private key: {private_key}") 
+
+
+message = int(input("enter your message here:")) 
+if not (0 <= message < public_key[0]):
+        raise ValueError(f"Message must be between 0 and {public_key[0] - 1}.")
+
+ciphertext = encrypt_the_message(public_key, message)
+print(f"Ciphertext: {ciphertext}")
+
+decrypted_message = decrypt_the_message(ciphertext, private_key, public_key)
+print(f"Decrypted Message: {decrypted_message}")
